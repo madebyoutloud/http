@@ -28,32 +28,33 @@ export class Retry {
   }
 
   async run<T>(fn: () => T, context: Context): Promise<Awaited<T>> {
-    try {
-      return await fn()
-    } catch (error) {
-      this.count++
+    while (true) {
+      try {
+        return await fn()
+      } catch (error) {
+        context.error = error as Error
+        this.count++
 
-      if (!(error instanceof RequestError) ||
-        !this.options.validate(this.count, error, this.options) ||
-        context.controller.signal.aborted
-      ) {
-        throw error
+        if (!(error instanceof RequestError) ||
+          !this.options.validate(this.count, error, this.options) ||
+          context.controller.signal.aborted
+        ) {
+          throw error
+        }
+
+        const delayMs = this.options.delay(this.count, error)
+        const time = Date.now() + delayMs
+
+        if (context.timeoutsAt && time > context.timeoutsAt) {
+          throw error
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+
+        if (context.controller.signal.aborted) {
+          throw error
+        }
       }
-
-      const delayMs = this.options.delay(this.count, error)
-      const time = Date.now() + delayMs
-
-      if (context.timeoutsAt && time > context.timeoutsAt) {
-        throw error
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, delayMs))
-
-      if (context.controller.signal.aborted) {
-        throw error
-      }
-
-      return this.run(fn, context)
     }
   }
 }
@@ -80,7 +81,7 @@ const validate: ValidateFn = (retryCount, error, options) => {
 const defaultOptions: RetryOptions = {
   limit: 2,
   methods: ['GET', 'HEAD', 'OPTIONS'],
-  statusCodes: [408, 413, 429, 500, 502, 503, 504, 521, 522, 524],
+  statusCodes: [408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 530],
   codes: ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED'],
   delay,
   validate,

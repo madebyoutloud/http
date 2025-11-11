@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { type Client, createClient, errors } from '../src/index.js'
+import type { RequestError } from '../src/errors.js'
 import { catchError } from './helpers.js'
 
 let client: Client
@@ -7,6 +8,7 @@ let client: Client
 describe('client', () => {
   beforeEach(() => {
     client = createClient({
+      name: 'test',
       url: 'http://localhost',
     })
   })
@@ -58,10 +60,24 @@ describe('client', () => {
     expect(error)
       .toBeInstanceOf(errors.RequestError)
 
-    console.log(error)
-
     expect(error)
       .toMatchObject({
+        status: 502,
+        data: { error: { message: 'Unknown error' } },
+      })
+  })
+
+  it('serializes error', async () => {
+    const [,error] = await catchError(client.get('/error', {}))
+    const json = (error as RequestError).toJSON()
+
+    expect(json)
+      .toEqual({
+        client: 'test',
+        url: 'http://localhost/error',
+        method: 'GET',
+        code: undefined,
+        message: error?.message,
         status: 502,
         data: { error: { message: 'Unknown error' } },
       })

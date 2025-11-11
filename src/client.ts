@@ -4,16 +4,16 @@ import type {
   RequestOptions,
   Response,
   OptionalResponseType,
-  RequestConfig,
   HeaderValues,
   ValidateFn,
 } from './types.js'
 import { errors, RequestError, TimeoutError } from './errors.js'
 import { Context } from './context.js'
 import { Retry, type UserRetryOptions } from './retry.js'
-import { HookRunner, type Hook, type Hooks } from './hooks.js'
+import { HookRunner, type Hooks } from './hooks.js'
 
 export interface ClientOptions {
+  name?: string
   fetch: typeof fetch
   redirect: RequestInit['redirect']
   timeout: number | false
@@ -80,7 +80,8 @@ export class Client {
     // Path extends string = '/',
     // Method extends RequestMethod = 'GET',
   >({ url, headers, ...options }: RequestOptions<D, Type> = {}): Future<Response<T, Type>> {
-    const config = {
+    const context = new Context({
+      name: this.options.name,
       method: 'GET',
       redirect: this.options.redirect,
       timeout: this.options.timeout,
@@ -92,34 +93,53 @@ export class Client {
         ...headers,
       },
       ...options,
-    } satisfies RequestConfig<D, Type>
+    })
+    const timeoutId = this.timeout(context)
 
-    if (!('accept' in config.headers) && config.responseType === 'json') {
-      config.headers.accept = 'application/json'
-    }
-
-    const context = new Context(config)
-    const timeoutId = this.$timeout(context)
-
-    const fn = () => this.$fetch<T, Type>(context)
-    let executor = fn
-
-    if (options.retry) {
-      executor = () => new Retry(typeof options.retry === 'object' ? options.retry : {})
-        .run(fn, context)
-    }
-
-    return Future.withCancel(executor(), () => context.controller.abort(new errors.CanceledError(context)))
+    return Future.withCancel(
+      this.$request<T, Type>(context),
+      () => context.controller.abort(new errors.CanceledError(context)),
+    )
       .finally(() => {
         timeoutId && clearTimeout(timeoutId)
       })
+  }
+
+  private async $request<
+    T = unknown,
+    Type extends OptionalResponseType = 'json',
+  >(context: Context) {
+    await HookRunner.run(this.hooks.request, context.request)
+
+    const fn = () => this.fetch<T, Type>(context)
+    let executor = fn
+
+    if (context.config.retry) {
+      executor = () => new Retry(typeof context.config.retry === 'object' ? context.config.retry : {})
+        .run(fn, context)
+    }
+
+    let response: Response<T, Type>
+
+    try {
+      response = await executor()
+    } catch (error) {
+      const errorResults = await HookRunner.run(this.hooks.error, error as RequestError)
+
+      throw errorResults.reverse()
+        .find((item) => item instanceof Error) ?? error
+    }
+
+    await HookRunner.run(this.hooks.response, response)
+
+    return response
   }
 
   isError(value: unknown): value is RequestError {
     return value instanceof RequestError
   }
 
-  private async $fetch<
+  private async fetch<
     T = unknown,
     Type extends OptionalResponseType = 'json',
   >(context: Context) {
@@ -127,13 +147,11 @@ export class Client {
     let response: Response<T, Type>
 
     try {
-      await HookRunner.run(this.hooks.request, context.request)
-
       const originalResponse = await this.options.fetch(context.request)
       response = Object.assign(originalResponse, { data: undefined }) as Response<T, Type>
       context.response = response
 
-      const data = await this.$processResponse(originalResponse, context.config.responseType)
+      const data = await this.processResponse(originalResponse, context.config.responseType)
       response.data = data as any
     } catch (error) {
       if (error instanceof RequestError) {
@@ -147,7 +165,7 @@ export class Client {
       })
     }
 
-    if (!this.$validate(response)) {
+    if (!this.validate(response)) {
       throw new RequestError({
         ...context,
         message: `Request failed with status code ${response.status}.`,
@@ -157,22 +175,22 @@ export class Client {
     return response
   }
 
-  private $validate(response: Response) {
+  private validate(response: Response) {
     return this.options.validate?.(response) ?? response.ok
   }
 
-  private $timeout(ctx: Context) {
-    if (!ctx.config.timeout) {
+  private timeout(context: Context) {
+    if (!context.config.timeout) {
       return
     }
 
     return setTimeout(() => {
       // returns last error if available, e.g. when retrying
-      ctx.controller.abort(ctx.error ?? new TimeoutError(ctx.toObject()))
-    }, ctx.config.timeout)
+      context.controller.abort(context.error ?? new TimeoutError(context.toObject()))
+    }, context.config.timeout)
   }
 
-  private $processResponse(response: globalThis.Response, type: OptionalResponseType) {
+  private processResponse(response: globalThis.Response, type: OptionalResponseType) {
     if (type === false) {
       return
     }
@@ -191,7 +209,7 @@ export class Client {
     }
   }
 
-  private $returnData<
+  protected returnData<
     T,
     Type extends OptionalResponseType,
   >(promise: Future<Response<T, Type>>): Future<Response<T, Type>['data']> {
@@ -210,7 +228,7 @@ export class Client {
     T = unknown,
     Type extends OptionalResponseType = 'json',
   >(url: string, params?: Params, options?: RequestOptions<never, Type>) {
-    return this.$returnData(this.get<T, Type>(url, params, options))
+    return this.returnData(this.get<T, Type>(url, params, options))
   }
 
   head<
@@ -224,7 +242,7 @@ export class Client {
     T = unknown,
     Type extends OptionalResponseType = 'json',
   >(url: string, options?: RequestOptions<never, Type>) {
-    return this.$returnData(this.head<T, Type>(url, options))
+    return this.returnData(this.head<T, Type>(url, options))
   }
 
   post<
@@ -240,7 +258,7 @@ export class Client {
     D = any,
     Type extends OptionalResponseType = 'json',
   >(url: string, data?: D, options?: RequestOptions<D, Type>) {
-    return this.$returnData(this.post<T, D, Type>(url, data, options))
+    return this.returnData(this.post<T, D, Type>(url, data, options))
   }
 
   put<
@@ -256,7 +274,7 @@ export class Client {
     D = any,
     Type extends OptionalResponseType = 'json',
   >(url: string, data?: D, options?: RequestOptions<D, Type>) {
-    return this.$returnData(this.put<T, D, Type>(url, data, options))
+    return this.returnData(this.put<T, D, Type>(url, data, options))
   }
 
   patch<
@@ -272,7 +290,7 @@ export class Client {
     D = any,
     Type extends OptionalResponseType = 'json',
   >(url: string, data?: D, options?: RequestOptions<D, Type>) {
-    return this.$returnData(this.patch<T, D, Type>(url, data, options))
+    return this.returnData(this.patch<T, D, Type>(url, data, options))
   }
 
   delete<
@@ -288,6 +306,6 @@ export class Client {
     D = any,
     Type extends OptionalResponseType = 'json',
   >(url: string, options?: RequestOptions<D, Type>) {
-    return this.$returnData(this.delete<T, D, Type>(url, options))
+    return this.returnData(this.delete<T, D, Type>(url, options))
   }
 }

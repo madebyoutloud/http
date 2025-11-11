@@ -21,6 +21,11 @@ export interface RequestConfig<
   D = any,
   Type extends OptionalResponseType = any,
 > {
+  /**
+   * Descriptive name for the client, will be used in errors
+   */
+  name?: string
+
   url: string
   method: RequestMethod
   params?: Params

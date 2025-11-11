@@ -13,7 +13,7 @@ export class Context {
 
   constructor(public config: RequestConfig) {
     this.controller = new AbortController()
-    this.request = this.$buildRequest()
+    this.request = this.buildRequest()
 
     if (config.signal) {
       config.signal.addEventListener('abort', () => {
@@ -23,7 +23,7 @@ export class Context {
   }
 
   get fullUrl() {
-    const query = this.$buildQuery(this.config.params)
+    const query = this.buildQuery(this.config.params)
     let url = this.config.url ?? ''
 
     if (query) {
@@ -45,14 +45,12 @@ export class Context {
     }
   }
 
-  private $buildRequest() {
+  private buildRequest() {
     const headers = new Headers(this.config.headers)
+    const accept = this.detectAccept(this.config.responseType)
+    headers.set('accept', accept)
 
-    const responseType: OptionalResponseType = this.config.responseType ?? 'json'
-    const mimeType = this.$detectAccept(responseType)
-    headers.set('accept', mimeType)
-
-    const body = this.$transformBody(this.config.data, headers)
+    const body = this.transformBody(this.config.data, headers)
 
     return new Request(this.fullUrl, {
       method: this.config.method,
@@ -66,7 +64,7 @@ export class Context {
     })
   }
 
-  private $detectAccept(responseType: OptionalResponseType) {
+  private detectAccept(responseType: OptionalResponseType) {
     if (!responseType) {
       return
     }
@@ -74,7 +72,7 @@ export class Context {
     return responseTypes[responseType]
   }
 
-  private $transformBody(body: unknown, headers: Headers): any {
+  private transformBody(body: unknown, headers: Headers): any {
     if (body === undefined || body === null) {
       return body
     }
@@ -95,7 +93,7 @@ export class Context {
 
     if (typeof body === 'object') {
       if (contentType.includes('application/x-www-form-urlencoded')) {
-        return this.$buildQuery(body as Params)
+        return this.buildQuery(body as Params)
       }
 
       headers.set('content-type', 'application/json')
@@ -105,19 +103,19 @@ export class Context {
     return body
   }
 
-  private $buildQuery(value: Params = {}, prefix?: string) {
-    return this.$param(value, prefix)
+  private buildQuery(value: Params = {}, prefix?: string) {
+    return this.param(value, prefix)
       .join('&')
   }
 
-  private $param(value?: unknown, key?: string): string[] {
+  private param(value?: unknown, key?: string): string[] {
     if (value === null || value === undefined) {
       return []
     }
 
     if (Array.isArray(value)) {
       return value.map((item, i) => {
-        return this.$param(item, `${key}[${i}]`)
+        return this.param(item, `${key}[${i}]`)
       })
         .flat()
     }
@@ -125,7 +123,7 @@ export class Context {
     if (typeof value === 'object') {
       return Object.entries(value)
         .map((item) => {
-          return this.$param(item[1], item[0] ? `${key}[${item[0]}]` : item[0])
+          return this.param(item[1], item[0] ? `${key}[${item[0]}]` : item[0])
         })
         .flat()
     }

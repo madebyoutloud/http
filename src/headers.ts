@@ -15,9 +15,10 @@ export class Headers {
   set(values: HeaderValues, override?: boolean): this
   set(values: string | HeaderValues, ...args: any[]): this {
     if (typeof values === 'object') {
-      Object.entries(values).forEach(([name, value]) => {
-        this.set(name, value, args[0])
-      })
+      Object.entries(values)
+        .forEach(([name, value]) => {
+          this.set(name, value, args[0])
+        })
 
       return this
     }

@@ -1,10 +1,13 @@
 import type { MaybePromise } from '@outloud/future'
+import type { RequestError } from './errors.js'
 
 export type Hook<Args extends any[] = any[], Result = any> = (...args: Args) => MaybePromise<Result>
 
 export interface Hooks {
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  error: Hook<[error: RequestError], Error | void>
   request: Hook<[request: Request], void>
-  response: Hook<[request: Request], Response>
+  response: Hook<[response: Response], void>
 }
 
 export class HookRunner<T extends Hook> {

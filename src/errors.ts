@@ -16,6 +16,7 @@ export class RequestError extends Error {
 
   code!: string
   status: number
+  data?: any
 
   constructor({ message, error, ...options }: RequestErrorOptions) {
     super(message ?? error?.message)
@@ -30,14 +31,12 @@ export class RequestError extends Error {
 
     this.status = this.response?.status ?? -1
     this.cause = error
-  }
-
-  get data() {
-    return this.response?.data
+    this.data = this.response?.data
   }
 
   toJSON() {
     return {
+      client: this.config.name,
       url: this.config.url,
       method: this.config.method,
       message: this.message,
