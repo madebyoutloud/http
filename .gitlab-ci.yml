@@ -6,6 +6,10 @@ variables:
 
 stages: [publish]
 
+include:
+  - project: outloud/ci
+    file: /utils/deployer.yml
+
 publish:library:
   stage: publish
   rules:
@@ -28,3 +32,7 @@ publish:library:
     - echo "@${SCOPE}:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/" >> .npmrc
     - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
     - pnpm publish
+  after_script:
+    - apk add --no-cache git
+    - !reference [.deployer, setup]
+    - pnpm dlx @outloud/deployer@beta slack:notify release
