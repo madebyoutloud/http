@@ -8,7 +8,7 @@ let client: Client
 describe('client', () => {
   beforeEach(() => {
     client = createClient({
-      name: 'test',
+      id: 'test',
       url: 'http://localhost',
     })
   })

@@ -24,7 +24,7 @@ export interface RequestConfig<
   /**
    * Descriptive name for the client, will be used in errors
    */
-  name?: string
+  id?: string
 
   url: string
   method: RequestMethod

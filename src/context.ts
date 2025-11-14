@@ -22,17 +22,6 @@ export class Context {
     }
   }
 
-  get fullUrl() {
-    const query = this.buildQuery(this.config.params)
-    let url = this.config.url ?? ''
-
-    if (query) {
-      url += (url.includes('?') ? '&' : '?') + query
-    }
-
-    return url
-  }
-
   get timeoutsAt() {
     return this.config.timeout && this.startAt ? this.startAt + this.config.timeout : undefined
   }
@@ -45,6 +34,16 @@ export class Context {
     }
   }
 
+  buildUrl() {
+    const url = new URL(this.config.url)
+
+    for (const [key, value] of this.buildQuery(this.config.params)) {
+      url.searchParams.append(key, value)
+    }
+
+    return url
+  }
+
   private buildRequest() {
     const headers = new Headers(this.config.headers)
     const accept = this.detectAccept(this.config.responseType)
@@ -52,7 +51,7 @@ export class Context {
 
     const body = this.transformBody(this.config.data, headers)
 
-    return new Request(this.fullUrl, {
+    return new Request(this.buildUrl(), {
       method: this.config.method,
       headers: headers.toObject(),
       signal: this.controller.signal,
@@ -103,35 +102,30 @@ export class Context {
     return body
   }
 
-  private buildQuery(value: Params = {}, prefix?: string) {
-    return this.param(value, prefix)
-      .join('&')
-  }
-
-  private param(value?: unknown, key?: string): string[] {
+  private buildQuery(value: unknown, path?: string): [string, string][] {
     if (value === null || value === undefined) {
       return []
     }
 
     if (Array.isArray(value)) {
-      return value.map((item, i) => {
-        return this.param(item, `${key}[${i}]`)
+      return value.flatMap((item, i) => {
+        return this.buildQuery(item, `${path}[${i}]`)
       })
-        .flat()
     }
 
     if (typeof value === 'object') {
       return Object.entries(value)
-        .map((item) => {
-          return this.param(item[1], item[0] ? `${key}[${item[0]}]` : item[0])
-        })
-        .flat()
+        .flatMap(([key, item]) => this.buildQuery(item, this.paramKey(key, path)))
     }
 
-    if (!key) {
+    if (!path) {
       return []
     }
 
-    return [`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`]
+    return [[path, String(value)]]
+  }
+
+  private paramKey(key: string, path?: string) {
+    return path ? `${path}[${key}]` : key
   }
 }

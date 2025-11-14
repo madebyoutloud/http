@@ -13,7 +13,7 @@ import { Retry, type UserRetryOptions } from './retry.js'
 import { HookRunner, type Hooks } from './hooks.js'
 
 export interface ClientOptions {
-  name?: string
+  id?: string
   fetch: typeof fetch
   redirect: RequestInit['redirect']
   timeout: number | false
@@ -81,7 +81,7 @@ export class Client {
     // Method extends RequestMethod = 'GET',
   >({ url, headers, ...options }: RequestOptions<D, Type> = {}): Future<Response<T, Type>> {
     const context = new Context({
-      name: this.options.name,
+      id: this.options.id,
       method: 'GET',
       redirect: this.options.redirect,
       timeout: this.options.timeout,
@@ -232,15 +232,15 @@ export class Client {
   head<
     T = unknown,
     Type extends OptionalResponseType = 'json',
-  >(url: string, options?: RequestOptions<never, Type>) {
-    return this.request<T, never, Type>({ ...options, method: 'HEAD', url })
+  >(url: string, params?: Params, options?: RequestOptions<never, Type>) {
+    return this.request<T, never, Type>({ ...options, method: 'HEAD', url, params })
   }
 
   $head<
     T = unknown,
     Type extends OptionalResponseType = 'json',
-  >(url: string, options?: RequestOptions<never, Type>) {
-    return this.returnData(this.head<T, Type>(url, options))
+  >(url: string, params?: Params, options?: RequestOptions<never, Type>) {
+    return this.returnData(this.head<T, Type>(url, params, options))
   }
 
   post<
