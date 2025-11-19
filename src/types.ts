@@ -5,7 +5,7 @@ export type ValidateFn = (response: Response) => boolean
 export type Params = Record<string, any>
 export type HeaderValues = Record<string, any>
 
-export type ResponseType = 'arrayBuffer' | 'blob' | 'json' | 'text'
+export type ResponseType = 'arrayBuffer' | 'blob' | 'json' | 'text' | 'auto'
 export type OptionalResponseType = ResponseType | false
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'TRACE'
 
@@ -14,6 +14,7 @@ export interface ResponseTypes<T = any> {
   blob: Blob
   text: string
   json: T
+  auto: T
   none: undefined
 }
 

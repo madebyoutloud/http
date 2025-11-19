@@ -76,7 +76,7 @@ export class Client {
   request<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
     // Path extends string = '/',
     // Method extends RequestMethod = 'GET',
   >({ url, headers, ...options }: RequestOptions<D, Type> = {}): Future<Response<T, Type>> {
@@ -86,7 +86,7 @@ export class Client {
       redirect: this.options.redirect,
       timeout: this.options.timeout,
       retry: typeof this.options.retry === 'object' ? { ...this.options.retry } : this.options.retry,
-      responseType: 'json' as Type,
+      responseType: 'auto' as Type,
       url: this.getUrl(url),
       headers: {
         ...this.options.headers,
@@ -107,7 +107,7 @@ export class Client {
 
   private async $request<
     T = unknown,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(context: Context) {
     await HookRunner.run(this.hooks.request, context.request)
 
@@ -141,7 +141,7 @@ export class Client {
 
   private async fetch<
     T = unknown,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(context: Context) {
     context.startAt ??= Date.now()
     let response: Response<T, Type>
@@ -150,9 +150,6 @@ export class Client {
       const originalResponse = await this.options.fetch(context.request)
       response = Object.assign(originalResponse, { data: undefined }) as Response<T, Type>
       context.response = response
-
-      const data = await this.processResponse(originalResponse, context.config.responseType)
-      response.data = data as any
     } catch (error) {
       if (error instanceof errors.RequestError) {
         throw error
@@ -161,6 +158,16 @@ export class Client {
       throw new errors.RequestError(context, {
         error: error as Error,
         message: 'Request failed due to a network error.',
+      })
+    }
+
+    try {
+      const data = await this.processResponse(response, context.config.responseType)
+      response.data = data as any
+    } catch (error) {
+      throw new errors.RequestError(context, {
+        error: error as Error,
+        message: 'Failed to process response data.',
       })
     }
 
@@ -193,6 +200,8 @@ export class Client {
       return
     }
 
+    const contentType = response.headers.get('content-type')
+
     switch (type) {
       case 'arrayBuffer':
         return response.arrayBuffer()
@@ -202,6 +211,16 @@ export class Client {
         return response.json()
       case 'text':
         return response.text()
+      case 'auto':
+        if (contentType?.includes('application/json')) {
+          return response.json()
+        }
+
+        if (contentType?.includes('text/plain') || !contentType) {
+          return response.text()
+        }
+
+        return
       default:
         throw new Error(`Invalid response type: ${type}`)
     }
@@ -217,28 +236,28 @@ export class Client {
   // shorthand methods
   get<
     T,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, params?: Params, options?: Omit<RequestOptions<never, Type>, 'method' | 'url' | 'params'>) {
     return this.request<T, never, Type>({ ...options, method: 'GET', url, params })
   }
 
   $get<
     T = unknown,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, params?: Params, options?: Omit<RequestOptions<never, Type>, 'method' | 'url' | 'params'>) {
     return this.returnData(this.get<T, Type>(url, params, options))
   }
 
   head<
     T = unknown,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, params?: Params, options?: Omit<RequestOptions<never, Type>, 'method' | 'url' | 'params'>) {
     return this.request<T, never, Type>({ ...options, method: 'HEAD', url, params })
   }
 
   $head<
     T = unknown,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, params?: Params, options?: Omit<RequestOptions<never, Type>, 'method' | 'url' | 'params'>) {
     return this.returnData(this.head<T, Type>(url, params, options))
   }
@@ -246,7 +265,7 @@ export class Client {
   post<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, data?: D, options?: Omit<RequestOptions<D, Type>, 'method' | 'url' | 'data'>) {
     return this.request<T, D, Type>({ ...options, method: 'POST', url, data })
   }
@@ -254,7 +273,7 @@ export class Client {
   $post<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, data?: D, options?: Omit<RequestOptions<D, Type>, 'method' | 'url' | 'data'>) {
     return this.returnData(this.post<T, D, Type>(url, data, options))
   }
@@ -262,7 +281,7 @@ export class Client {
   put<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, data?: D, options?: Omit<RequestOptions<D, Type>, 'method' | 'url' | 'data'>) {
     return this.request<T, D, Type>({ ...options, method: 'PUT', url, data })
   }
@@ -270,7 +289,7 @@ export class Client {
   $put<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, data?: D, options?: Omit<RequestOptions<D, Type>, 'method' | 'url' | 'data'>) {
     return this.returnData(this.put<T, D, Type>(url, data, options))
   }
@@ -278,7 +297,7 @@ export class Client {
   patch<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, data?: D, options?: Omit<RequestOptions<D, Type>, 'method' | 'url' | 'data'>) {
     return this.request<T, D, Type>({ ...options, method: 'PATCH', url, data })
   }
@@ -286,7 +305,7 @@ export class Client {
   $patch<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, data?: D, options?: Omit<RequestOptions<D, Type>, 'method' | 'url' | 'data'>) {
     return this.returnData(this.patch<T, D, Type>(url, data, options))
   }
@@ -294,7 +313,7 @@ export class Client {
   delete<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, options?: Omit<RequestOptions<D, Type>, 'method' | 'url'>) {
     return this.request<T, D, Type>({ ...options, method: 'DELETE', url })
   }
@@ -302,7 +321,7 @@ export class Client {
   $delete<
     T = unknown,
     D = any,
-    Type extends OptionalResponseType = 'json',
+    Type extends OptionalResponseType = 'auto',
   >(url: string, options?: Omit<RequestOptions<D, Type>, 'method' | 'url'>) {
     return this.returnData(this.delete<T, D, Type>(url, options))
   }

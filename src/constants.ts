@@ -9,6 +9,7 @@ export const streamTypes = [
 ] as const
 
 export const responseTypes: Record<ResponseType, string> = {
+  auto: 'application/json',
   json: 'application/json',
   text: 'text/*',
   blob: '*/*',

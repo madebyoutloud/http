@@ -67,7 +67,7 @@ describe('client', () => {
   })
 
   it('serializes error', async () => {
-    const [,error] = await catchError(client.get('/error', {}))
+    const [,error] = await catchError(client.get('/error', { test: 1 }))
     const json = (error as RequestError).toJSON()
 
     expect(json).toEqual({
@@ -75,6 +75,7 @@ describe('client', () => {
       url: 'http://localhost/error',
       method: 'GET',
       code: '',
+      params: { test: 1 },
       message: error?.message,
       status: 502,
       data: { error: { message: 'Unknown error' } },
