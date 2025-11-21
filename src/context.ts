@@ -58,6 +58,7 @@ export class Context {
       redirect: this.config.redirect,
       credentials: this.config.credentials,
       mode: this.config.mode,
+      // @ts-expect-error unsupported in lib.dom.ts
       dispatcher: this.config.dispatcher as any,
       body,
     })
