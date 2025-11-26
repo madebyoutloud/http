@@ -1,12 +1,26 @@
 import type { MaybePromise } from '@outloud/future'
 import type { errors } from './errors.js'
+import type { RequestConfig } from './types.js'
 
 export type Hook<Args extends any[] = any[], Result = any> = (...args: Args) => MaybePromise<Result>
 
 export interface Hooks {
+  /**
+   * Runs when a request error occurs.
+   */
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   error: Hook<[error: errors['RequestError']], Error | void>
-  request: Hook<[request: Request], void>
+  /**
+   * Runs on request initialization, before any other hook. It's called only once even with retries.
+   */
+  init: Hook<[config: RequestConfig], void>
+  /**
+   * Runs before the request is sent and is called for each retry attempt.
+   */
+  request: Hook<[config: RequestConfig], void>
+  /**
+   * Runs after a response is received.
+   */
   response: Hook<[response: Response], void>
 }
 

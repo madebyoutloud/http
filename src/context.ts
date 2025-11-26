@@ -4,8 +4,8 @@ import { responseTypes, streamTypes } from './constants.js'
 import { isFormData, isNativeClass } from './helpers.js'
 
 export class Context {
-  request: Request
   controller: AbortController
+  request?: Request
   response?: Response
 
   error?: Error
@@ -13,11 +13,10 @@ export class Context {
 
   constructor(public config: RequestConfig) {
     this.controller = new AbortController()
-    this.request = this.buildRequest()
 
-    if (config.signal) {
-      config.signal.addEventListener('abort', () => {
-        this.controller.abort(config.signal?.reason)
+    if (this.config.signal) {
+      this.config.signal.addEventListener('abort', () => {
+        this.controller.abort(this.config.signal?.reason)
       })
     }
   }
@@ -44,14 +43,14 @@ export class Context {
     return url
   }
 
-  private buildRequest() {
+  buildRequest() {
     const headers = new Headers(this.config.headers)
     const accept = this.detectAccept(this.config.responseType)
     headers.set('accept', accept)
 
     const body = this.transformBody(this.config.data, headers)
 
-    return new Request(this.buildUrl(), {
+    const request = new Request(this.buildUrl(), {
       method: this.config.method,
       headers: headers.toObject(),
       signal: this.controller.signal,
@@ -62,6 +61,10 @@ export class Context {
       dispatcher: this.config.dispatcher as any,
       body,
     })
+
+    this.request = request
+
+    return request
   }
 
   private detectAccept(responseType: OptionalResponseType) {

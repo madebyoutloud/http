@@ -100,6 +100,7 @@ export class Client {
       },
       ...options,
     })
+
     const timeoutId = this.timeout(context)
 
     return Future.withCancel(
@@ -115,12 +116,13 @@ export class Client {
     T = unknown,
     Type extends OptionalResponseType = 'auto',
   >(context: Context) {
-    await HookRunner.run(this.hooks.request, context.request)
+    await HookRunner.run(this.hooks.init, context.config)
 
     const fn = () => this.fetch<T, Type>(context)
     let executor = fn
 
     if (context.config.retry) {
+      // TODO: run hooks on retry?
       executor = () => new Retry(typeof context.config.retry === 'object' ? context.config.retry : {})
         .run(fn, context)
     }
@@ -152,8 +154,10 @@ export class Client {
     context.startAt ??= Date.now()
     let response: Response<T, Type>
 
+    await HookRunner.run(this.hooks.request, context.config)
+
     try {
-      const originalResponse = await this.options.fetch(context.request)
+      const originalResponse = await this.options.fetch(context.buildRequest())
       response = Object.assign(originalResponse, { data: undefined }) as Response<T, Type>
       context.response = response
     } catch (error) {

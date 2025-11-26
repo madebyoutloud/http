@@ -34,7 +34,7 @@ export interface RequestConfig<
   headers?: HeaderValues
 
   redirect?: RequestInit['redirect']
-  signal?: AbortSignal
+  readonly signal?: AbortSignal
   credentials?: RequestInit['credentials']
   mode?: RequestInit['mode']
   dispatcher?: unknown
