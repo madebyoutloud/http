@@ -114,8 +114,9 @@ export class Context {
     }
 
     if (Array.isArray(value)) {
-      return value.flatMap((item, i) => {
-        return this.buildQuery(item, `${path}[${i}]`)
+      return value.flatMap((item) => {
+        // TODO: use this.buildQuery(item, `${path}[${i}]`) instead?
+        return this.buildQuery(item, `${path}[]`)
       })
     }
 

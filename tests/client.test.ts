@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { type Client, createClient, errors } from '../src/index.js'
 import type { RequestError } from '../src/errors.js'
+import { Context } from '../src/context.js'
 import { catchError } from './helpers.js'
 
 let client: Client
@@ -85,6 +86,24 @@ describe('client', () => {
   it('captures stack trace', async () => {
     const [,error] = await catchError(client.get('/error', {}))
 
-    console.log(error.stack)
+    expect(error).toBeInstanceOf(errors.RequestError)
+    expect(error!.stack).not.toContain('at Client.fetch')
+    expect(error!.stack).not.toContain('at Client.$request')
+    expect(error!.stack).toContain('at Client.request')
+    expect(error!.stack).toContain('at Client.get')
+  })
+
+  it('converts params correctly', async () => {
+    const id = [1, 2, 3]
+    const context = new Context({
+      url: 'http://localhost/text',
+      method: 'GET',
+      params: { id},
+    })
+
+    const request = context.buildRequest()
+    const params = id.map((item) => `${encodeURIComponent('id[]')}=${encodeURIComponent(item)}`).join('&')
+
+    expect(request.url).toBe(`http://localhost/text?${params}`)
   })
 })
