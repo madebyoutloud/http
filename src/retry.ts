@@ -82,7 +82,7 @@ const defaultOptions: RetryOptions = {
   limit: 2,
   methods: ['GET', 'HEAD', 'OPTIONS'],
   statusCodes: [408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 530],
-  codes: ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED'],
+  codes: ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED', 'UND_ERR_SOCKET'],
   delay,
   validate,
 }
