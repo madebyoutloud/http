@@ -8,7 +8,7 @@ export class Headers {
   }
 
   get(name: string) {
-    return this.values.get(this.$normalizeName(name))
+    return this.values.get(this.normalizeName(name))
   }
 
   set(name: string, value: unknown, override?: boolean): this
@@ -23,7 +23,7 @@ export class Headers {
       return this
     }
 
-    const name = this.$normalizeName(values)
+    const name = this.normalizeName(values)
     const value: unknown = args[0]
     const override: boolean = args[1] ?? false
 
@@ -41,11 +41,11 @@ export class Headers {
   }
 
   has(name: string) {
-    return this.values.has(this.$normalizeName(name))
+    return this.values.has(this.normalizeName(name))
   }
 
   delete(name: string) {
-    this.values.delete(this.$normalizeName(name))
+    this.values.delete(this.normalizeName(name))
 
     return this
   }
@@ -54,7 +54,7 @@ export class Headers {
     return Object.fromEntries(this.values)
   }
 
-  private $normalizeName(name: string) {
+  private normalizeName(name: string) {
     return name.toLowerCase()
   }
 }
