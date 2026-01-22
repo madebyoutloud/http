@@ -29,6 +29,7 @@ export interface RequestOptions<
 
   headers?: HeaderValues
 
+  /** @default 'follow' */
   redirect?: RequestInit['redirect']
   signal?: AbortSignal
   credentials?: RequestInit['credentials']
@@ -36,9 +37,12 @@ export interface RequestOptions<
   dispatcher?: unknown
 
   data?: D
+  /** @default 'auto' */
   responseType?: Type
+  /** @default 60000 */
   timeout?: number | false
 
+  /** @default false */
   retry?: UserRetryOptions | boolean
 }
 

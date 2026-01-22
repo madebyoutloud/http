@@ -34,7 +34,7 @@ export class Client {
     this.options = {
       fetch: globalThis.fetch.bind(globalThis),
       redirect: 'follow',
-      timeout: false,
+      timeout: 60_000,
       retry: false,
       ...options,
     }

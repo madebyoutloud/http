@@ -2,9 +2,9 @@ variables:
   PIPELINE:
     description: "Specify which pipeline to run"
     value: default
-    options: [default, library]
+    options: [default, library, docs]
 
-stages: [publish]
+stages: [build, deploy, publish]
 
 include:
   - project: outloud/ci
@@ -35,4 +35,47 @@ publish:library:
   after_script:
     - apk add --no-cache git
     - !reference [.deployer, setup]
-    - pnpm dlx @outloud/deployer@beta slack:notify release
+    - deployer slack:notify release
+
+build:docs:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      changes:
+        - docs/**/*
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE == "docs"
+  image: node:24-alpine
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@latest-10 --activate
+    - pnpm config set store-dir .pnpm-store
+    - apk add --no-cache zip
+  script:
+    - cd docs
+    - pnpm install --loglevel warn
+    - pnpm run generate
+    - cd .output/public
+    - zip -r docs.zip ./*
+    - mv docs.zip ../../../
+  artifacts:
+    paths:
+      - docs.zip
+
+deploy:docs:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      changes:
+        - docs/**/*
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE == "docs"
+  dependencies:
+    - build:docs
+  resource_group: docs
+  image:
+    name: amazon/aws-cli
+    entrypoint: [""]
+  variables:
+    ARTIFACT_NAME: ${CI_PROJECT_PATH_SLUG}-docs.zip
+  script:
+    - aws s3 cp docs.zip s3://${AWS_S3_BUCKET}/${ARTIFACT_NAME}
+    - aws amplify start-deployment --app-id $AWS_AMPLIFY_ID --branch-name $AWS_AMPLIFY_ENV --source-url s3://${AWS_S3_BUCKET}/${ARTIFACT_NAME}

@@ -6,6 +6,7 @@ export default createConfig({
     stylistic: true,
   },
 })
+  .append({ ignores: ['docs'] })
   .append({
     rules: {
       '@stylistic/newline-per-chained-call': ['error', { ignoreChainWithDepth: 2 }],

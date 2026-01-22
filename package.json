@@ -3,6 +3,12 @@
   "type": "module",
   "version": "1.0.0",
   "description": "HTTP client based on Fetch API with built-in support for retries, timeouts, and JSON handling.",
+  "homepage": "https://http.byoutloud.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/madebyoutloud/http.git"
+  },
+  "license": "MIT",
   "engines": {
     "node": ">=20"
   },
@@ -19,8 +25,14 @@
     }
   },
   "imports": {
-    "~/*": "./src/*.js"
+    "#/*": "./src/*.js"
   },
+  "keywords": [
+    "http",
+    "fetch",
+    "request",
+    "api"
+  ],
   "scripts": {
     "dev": "vitest dev",
     "pretest": "pnpm run lint && pnpm run typecheck",

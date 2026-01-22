@@ -8,6 +8,7 @@ tmp/*
 
 .DS_STORE
 .idea
+idea.md
 *.log
 
 !.gitkeep
