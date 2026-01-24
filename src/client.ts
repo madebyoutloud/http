@@ -141,9 +141,14 @@ export class Client {
       response = await executor()
     } catch (error) {
       const errorResults = await HookRunner.run(this.hooks.error, error as errors['RequestError'])
+      const finalError = errorResults.reverse()
+        .find((item) => item instanceof Error) ?? (error as Error)
 
-      throw errorResults.reverse()
-        .find((item) => item instanceof Error) ?? error
+      if (finalError !== error && !finalError.cause) {
+        finalError.cause = error
+      }
+
+      throw finalError
     }
 
     await HookRunner.run(this.hooks.response, response)
