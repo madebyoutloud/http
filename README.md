@@ -1,4 +1,4 @@
-# HTTP
+# Reqo
 HTTP client based on Fetch API with built-in support for retries, timeouts, and JSON handling.
 
 <p>
