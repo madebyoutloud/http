@@ -3,6 +3,7 @@ import { Client, type ClientOptions } from './client.js'
 export * from './client.js'
 export { errors } from './errors.js'
 export type {
+  RequestState,
   RequestMethod,
   RequestConfig,
   RequestOptions,

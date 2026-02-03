@@ -1,16 +1,18 @@
-import type { OptionalResponseType, Params, RequestConfig, Response } from './types.js'
+import type { OptionalResponseType, Params, RequestConfig, RequestState, Response } from './types.js'
 import { responseTypes, streamTypes } from './constants.js'
 import { isFormData, isNativeClass } from './helpers.js'
+import type { errors } from './errors.js'
 
-export class Context {
-  controller: AbortController
+export class Context implements RequestState {
+  readonly controller: AbortController
   request?: Request
   response?: Response
 
   stack?: string
 
-  error?: Error
   startAt?: number
+  error?: errors['RequestError']
+  retryCount = 0
 
   constructor(public config: RequestConfig) {
     this.controller = new AbortController()

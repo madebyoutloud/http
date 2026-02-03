@@ -169,7 +169,7 @@ export class Client {
     context.startAt ??= Date.now()
     let response: Response<T, Type>
 
-    await HookRunner.run(this.hooks.request, context.config)
+    await HookRunner.run(this.hooks.request, context.config, context)
 
     try {
       const originalResponse = await this.options.fetch(context.buildRequest())

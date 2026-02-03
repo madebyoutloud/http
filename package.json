@@ -43,7 +43,6 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "typecheck": "tsc --project tsconfig.build.json --noEmit",
-    "prepack": "pnpm build",
     "release": "release-it"
   },
   "devDependencies": {

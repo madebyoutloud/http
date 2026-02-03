@@ -1,6 +1,6 @@
 import type { MaybePromise } from '@outloud/future'
 import type { errors } from './errors.js'
-import type { RequestConfig } from './types.js'
+import type { RequestConfig, RequestState } from './types.js'
 
 export type Hook<Args extends any[] = any[], Result = any> = (...args: Args) => MaybePromise<Result>
 
@@ -17,7 +17,7 @@ export interface Hooks {
   /**
    * Runs before the request is sent and is called for each retry attempt.
    */
-  request: Hook<[config: RequestConfig], void>
+  request: Hook<[config: RequestConfig, state: RequestState], void>
   /**
    * Runs after a response is received.
    */

@@ -1,3 +1,4 @@
+import type { errors } from './errors.js'
 import type { Headers } from './headers.js'
 import type { UserRetryOptions } from './retry.js'
 
@@ -81,4 +82,15 @@ export interface Response<
   data: ResponseTypes<T>[
     ResponseType extends Type ? 'auto' : Type extends false ? 'none' : Type
   ]
+}
+
+export interface RequestState {
+  /** Last error encountered during the request */
+  error?: errors['RequestError']
+  /** Number of retry attempts made */
+  retryCount: number
+}
+
+export interface ErrorRequestState extends Omit<RequestState, 'error'> {
+  error: errors['RequestError']
 }
